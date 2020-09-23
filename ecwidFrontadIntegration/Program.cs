@@ -28,9 +28,8 @@ namespace ecwidFrontadIntegration
 
             while(true)
             {
-                Process(processSetting);
-                logger.Info("прошла одна итерация");
-                Thread.Sleep(10000);
+                Process(processSetting);                
+                Thread.Sleep(900000);
             }
         }
 
@@ -41,61 +40,48 @@ namespace ecwidFrontadIntegration
             var jsonResult = result.Content.ReadAsStringAsync().Result;
             if (result.StatusCode != HttpStatusCode.OK)
             {
-                ps.Logger.Error("ошибка от Ecwid");
+                ps.Logger.Error("Не удалось запросить заказы из Ecwid. StatusCode: " + result.StatusCode);
                 
             } else
             {
+                Root root = JsonConvert.DeserializeObject<Root>(jsonResult);
 
-            }
+                string jsonInf = File.ReadAllText("appInfo.json");
+                AppInfo appInfo = JsonConvert.DeserializeObject<AppInfo>(jsonInf);
 
-            Root root = JsonConvert.DeserializeObject<Root>(jsonResult);
-
-            string jsonInf = File.ReadAllText("appInfo.json");
-            AppInfo appInfo = JsonConvert.DeserializeObject<AppInfo>(jsonInf);
-
-            foreach (EcwidOrder ecwidOrder in root.EcwidOrders)
-            {
-                if (ecwidOrder.OrderNumber > appInfo.LastOrderId)
+                foreach (EcwidOrder ecwidOrder in root.EcwidOrders)
                 {
-                    var frontpadOrder = ecwidOrder.ConvertToFrontpadOrder();
-                    frontpadOrder.Secret = ps.AppSettings.SecretFrontpad;
-                  
-                    Dictionary <string, string> frontpadResponseBody = new Dictionary<string, string>(5);
-                    frontpadResponseBody.Add("secret", frontpadOrder.Secret);
-                    frontpadResponseBody.Add("product", frontpadOrder.ProductsId.Aggregate((i, j) => i + "," + j));
-                    frontpadResponseBody.Add("product_kol", frontpadOrder.ProductsNumber.Aggregate((i, j) => i + "," + j));
-                    frontpadResponseBody.Add("name", frontpadOrder.ClientName);
-                    frontpadResponseBody.Add("phone", frontpadOrder.ClientPhone);
-                    frontpadResponseBody.Add("mail", frontpadOrder.Email);
-                    frontpadResponseBody.Add("street", frontpadOrder.FullAddress);
-                    frontpadResponseBody.Add("descr", frontpadOrder.Description);
-
-                    var content = new FormUrlEncodedContent(frontpadResponseBody);
-                    content.Headers.Add("ContentType", "application/x-www-form-urlencoded");
-                    var response = ps.HttpClient.PostAsync("https://app.frontpad.ru/api/index.php?new_order", content).Result;
-
-                    var bodyResponse = response.Content.ReadAsStringAsync().Result;
-
-                    FrontPadResponse frontPadResponse = JsonConvert.DeserializeObject<FrontPadResponse>(bodyResponse);
-                    if (frontPadResponse.Result == "success")
+                    if (ecwidOrder.OrderNumber > appInfo.LastOrderId)
                     {
-                        appInfo.LastOrderId = ecwidOrder.OrderNumber;
-                        Helper.UpdateLastOrderId(appInfo);
-                        ps.Logger.Info("Заказ orderNumber = " + ecwidOrder.OrderNumber + " Передан в FrontPad c order_number = " + frontPadResponse.OrderNumber);
-                    }
-                    else if (frontPadResponse.Result == "error")
-                    {
-                        ps.Logger.Error("Заказ orderNumber = " + ecwidOrder.OrderNumber + " Ошибка от FrontPad: " + frontPadResponse.Error);
-                        continue;
+                        var frontpadOrder = ecwidOrder.ConvertToFrontpadOrder();
+                        frontpadOrder.Secret = ps.AppSettings.SecretFrontpad;
+
+                        var frontpadResponseBody = Helper.CreateFrontpadResponseDicDictionary(frontpadOrder, ecwidOrder.Products);
+
+                        var content = new FormUrlEncodedContent(frontpadResponseBody);
+                        content.Headers.Add("ContentType", "application/x-www-form-urlencoded");
+                        var response = ps.HttpClient.PostAsync("https://app.frontpad.ru/api/index.php?new_order", content).Result;
+
+                        var bodyResponse = response.Content.ReadAsStringAsync().Result;
+
+                        FrontPadResponse frontPadResponse = JsonConvert.DeserializeObject<FrontPadResponse>(bodyResponse);
+                        if (frontPadResponse.Result == "success")
+                        {
+                            appInfo.LastOrderId = ecwidOrder.OrderNumber;
+                            Helper.UpdateLastOrderId(appInfo);
+                            ps.Logger.Info("Заказ orderNumber = " + ecwidOrder.OrderNumber + " Передан в FrontPad c order_number = " + frontPadResponse.OrderNumber);
+                        }
+                        else if (frontPadResponse.Result == "error")
+                        {
+                            ps.Logger.Error("Заказ orderNumber = " + ecwidOrder.OrderNumber + " Ошибка от FrontPad: " + frontPadResponse.Error);
+                            continue;
+                        }
                     }
                 }
-            }
 
-            ps.Logger.Info("заказы за 15 минут обработаны");
+                ps.Logger.Info("Заказы за 15 минут обработаны");
+            } 
         }
-
-        
-        
     }
 
     public class FrontPadResponse

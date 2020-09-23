@@ -45,5 +45,25 @@ namespace ecwidFrontadIntegration
             var jsonNew = JsonConvert.SerializeObject(appInfo);
             File.WriteAllText("appInfo.json", jsonNew);
         }
+
+        public static Dictionary<string, string> CreateFrontpadResponseDicDictionary(FrontpadOrder frontpadOrder, List<Product> items)
+        {            
+            Dictionary<string, string> frontpadResponseBody = new Dictionary<string, string>();
+
+            frontpadResponseBody.Add("secret", frontpadOrder.Secret);
+            frontpadResponseBody.Add("name", frontpadOrder.ClientName);
+            frontpadResponseBody.Add("phone", frontpadOrder.ClientPhone);
+            frontpadResponseBody.Add("mail", frontpadOrder.Email);
+            frontpadResponseBody.Add("street", frontpadOrder.FullAddress);
+            frontpadResponseBody.Add("descr", frontpadOrder.Description);
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                frontpadResponseBody.Add("product[" + i + "]", items[i].Id);
+                frontpadResponseBody.Add("product_kol[" + i + "]", items[i].Quantity);
+            }
+
+            return frontpadResponseBody;
+        }
     }
 }

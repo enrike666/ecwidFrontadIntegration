@@ -73,7 +73,7 @@ namespace ecwidFrontadIntegration
                 ProductsNumber = productsNumber,
                 Email = Email,
                 FullAddress = ClientInfo.City + ", " + ClientInfo.Street,
-                Description = ""
+                Description = OrderNumber.ToString()
             };
 
             return frontpadOrder;
