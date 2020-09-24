@@ -26,17 +26,13 @@ namespace ecwidFrontadIntegration
             var resultPhone = "";
             if ((digitsPhone.Length == 10) && (digitsPhone[0] == '9'))
             {
-                resultPhone = "7" + digitsPhone;
+                resultPhone = "8" + digitsPhone;
             }
             else if (digitsPhone.Length == 11)
             {
-                resultPhone = "7" + digitsPhone.Substring(1);
+                resultPhone = "8" + digitsPhone.Substring(1);
             }
-            else
-            {
-                //записать в лог ошибку
-            }
-
+            
             return resultPhone;
         }
 

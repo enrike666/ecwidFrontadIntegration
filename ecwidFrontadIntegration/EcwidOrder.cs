@@ -56,6 +56,9 @@ namespace ecwidFrontadIntegration
         [JsonProperty("items")]
         public List<Product> Products { get; set; }
 
+        [JsonProperty("orderComments")]
+        public string Comment { get; set; }
+
         public FrontpadOrder ConvertToFrontpadOrder()
         {
             List<string> productsId = new List<string>();
@@ -73,7 +76,7 @@ namespace ecwidFrontadIntegration
                 ProductsNumber = productsNumber,
                 Email = Email,
                 FullAddress = ClientInfo.City + ", " + ClientInfo.Street,
-                Description = OrderNumber.ToString()
+                Description = "Заказ " + OrderNumber.ToString() + ". " + Comment
             };
 
             return frontpadOrder;
@@ -88,6 +91,4 @@ namespace ecwidFrontadIntegration
             }
         }
     }
-
-    
 }
