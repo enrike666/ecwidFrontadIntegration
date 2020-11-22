@@ -1,3 +1,5 @@
 ﻿.vs
 ecwidFrontadIntegration/bin
 ecwidFrontadIntegration/obj
+ecwidFrontadIntegration/appInfo.json
+ecwidFrontadIntegration/appSettings.json

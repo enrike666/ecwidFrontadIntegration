@@ -17,20 +17,23 @@ namespace ecwidFrontadIntegration
     class Program
     {
         static void Main(string[] args)
-        {      
+        {
             Logger logger = NLog.Web.NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
             var httpClient = new HttpClient();
 
-            string jsonSettings = File.ReadAllText("appSettings.json");
-            AppSettings appSettings = JsonConvert.DeserializeObject<AppSettings>(jsonSettings);
-
-            var processSetting = new ProcessSetting(appSettings, logger, httpClient);
-
-            while(true)
+            try
             {
-                Process(processSetting);                
-                Thread.Sleep(900000);
+                string jsonSettings = File.ReadAllText("appSettings.json");
+                AppSettings appSettings = JsonConvert.DeserializeObject<AppSettings>(jsonSettings);
+
+                var processSetting = new ProcessSetting(appSettings, logger, httpClient);
+
+                Process(processSetting);
+            } catch (Exception ex)
+            {
+                logger.Error("Ошибка: " + ex.Message);
             }
+                   
         }
 
         public static void Process(object processSetting)
@@ -55,13 +58,13 @@ namespace ecwidFrontadIntegration
                     {
                         var frontpadOrder = ecwidOrder.ConvertToFrontpadOrder();
                         frontpadOrder.Secret = ps.AppSettings.SecretFrontpad;
-
+                                       
                         var frontpadResponseBody = Helper.CreateFrontpadResponseDicDictionary(frontpadOrder, ecwidOrder.Products);
 
                         var content = new FormUrlEncodedContent(frontpadResponseBody);
-                        content.Headers.Add("ContentType", "application/x-www-form-urlencoded");
+                        content.Headers.Add("ContentType", "application/x-www-form-urlencoded");                        
                         var response = ps.HttpClient.PostAsync("https://app.frontpad.ru/api/index.php?new_order", content).Result;
-
+                        Thread.Sleep(1500);
                         var bodyResponse = response.Content.ReadAsStringAsync().Result;
 
                         FrontPadResponse frontPadResponse = JsonConvert.DeserializeObject<FrontPadResponse>(bodyResponse);
@@ -76,9 +79,8 @@ namespace ecwidFrontadIntegration
                             ps.Logger.Error("Заказ orderNumber = " + ecwidOrder.OrderNumber + " Ошибка от FrontPad: " + frontPadResponse.Error);
                             continue;
                         }
-                    }
-                }
-
+                    }                    
+                }                
                 ps.Logger.Info("Заказы за 15 минут обработаны");
             } 
         }
